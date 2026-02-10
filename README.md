@@ -21,6 +21,7 @@ A Tampermonkey userscript that allows:
 - Prioritizing certain keywords to display threads at the top.
 - Dynamic, responsive UI to add, remove, and reorder priority keywords.
 - Loading all threads automatically and sorting them.
+- Pepper limits returned threads to 300 in one session. 
 
 ### Features
 

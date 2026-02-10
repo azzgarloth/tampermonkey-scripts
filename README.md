@@ -3,7 +3,7 @@
 This repository contains two Tampermonkey userscripts:
 
 1. **Pepper Keyword Filter Prioritizer UI (Responsive)** – Customize and prioritize forum threads on [Pepper.pl](https://www.pepper.pl/).  
-2. **Hide PoE 2 Videos & Shorts Menu & Channels & Shorts Shelf** – Filter unwanted videos and Shorts on YouTube.
+2. **Hide Videos & Shorts Menu & Channels & Shorts Shelf** – Filter unwanted videos and Shorts on YouTube.
 
 ---
 
@@ -51,7 +51,7 @@ The UI allows you to dynamically add, remove, and reorder priority keywords with
 
 ---
 
-## 2. Hide PoE 2 Videos & Shorts Menu & Channels & Shorts Shelf
+## 2. Hide Videos & Shorts Menu & Channels & Shorts Shelf
 
 ![Tampermonkey](https://img.shields.io/badge/Tampermonkey-compatible-brightgreen)  
 ![YouTube](https://img.shields.io/badge/Platform-YouTube-red)  
@@ -76,7 +76,7 @@ A Tampermonkey userscript that hides:
 ### Installation
 
 1. Install [Tampermonkey](https://www.tampermonkey.net/).  
-2. Create a new userscript and paste the `Hide PoE 2 Videos & Shorts Menu & Channels & Shorts Shelf` code.  
+2. Create a new userscript and paste the `Hide "keyword" Videos, Shorts Menu, Channels array, and Shorts Shelf` code.  
 3. Save and visit [YouTube](https://www.youtube.com/).  
 
 ### Configuration
@@ -88,3 +88,22 @@ const blockedChannels = [
     'channelNameToBlock',
     'AnotherChannel'
 ];
+```
+
+- **Video keyword**: The regex /value\s*2/i filters videos containing "value 2". Modify as needed.
+
+### Usage
+
+- The script runs **automatically**.
+- Hidden elements are only **visually removed** (display: none) but not deleted.
+- **Works with dynamic content loading (infinite scroll)**.
+
+### Contributing
+
+- Adjust selectors if YouTube or Pepper.pl updates their DOM structure.
+- Add additional keyword matching rules.
+- Report issues or submit pull requests to improve filtering performance.
+
+### License
+
+- MIT License

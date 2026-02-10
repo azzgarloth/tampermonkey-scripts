@@ -1,0 +1,223 @@
+// ==UserScript==
+// @name         Pepper Keyword Filter Prioritizer UI Responsive
+// @namespace    http://tampermonkey.net/
+// @version      10.7
+// @match        https://www.pepper.pl/*
+// @grant        none
+// @run-at       document-end
+// @inject-into  page
+// ==/UserScript==
+
+(function () {
+    'use strict';
+
+    // ----------- CONFIGURATION -----------
+    const hideKeywords = ['Samochód']; // keywords to hide
+
+    let priorityKeywords = [
+        'komputer stacjonarny',
+        'laptop',
+        'smartfon'
+    ]; // keywords with priority
+
+    const MAX_SCROLL_ATTEMPTS = 20;
+    const LOAD_WAIT_MS = 1375;
+    const NO_CHANGE_LIMIT = 3;
+
+    let isLoading = false;
+    let loadingComplete = false;
+
+    // ----------- FUNCTIONS -----------
+    function getThreadPriority(title) {
+        const lower = title.toLowerCase();
+        for (const kw of hideKeywords) if (lower.includes(kw.toLowerCase())) return -1;
+        for (let i = priorityKeywords.length - 1; i >= 0; i--) {
+            if (lower.includes(priorityKeywords[i].toLowerCase())) return priorityKeywords.length - i;
+        }
+        return 0;
+    }
+
+    function sleep(ms) {
+        return new Promise(r => setTimeout(r, ms));
+    }
+
+    function scrollToLastThread() {
+        const threads = document.querySelectorAll('article.thread, [data-t="thread"], .cept-thread-item');
+        if (!threads.length) return false;
+        threads[threads.length - 1].scrollIntoView({ behavior: 'smooth', block: 'end' });
+        return true;
+    }
+
+    async function loadAllPages() {
+        if (isLoading || loadingComplete) return;
+        isLoading = true;
+        console.log('=== LOAD START ===');
+
+        let prevCount = 0, noChange = 0;
+
+        for (let i = 0; i < MAX_SCROLL_ATTEMPTS; i++) {
+            scrollToLastThread();
+            await sleep(LOAD_WAIT_MS);
+
+            const count = document.querySelectorAll('article.thread, [data-t="thread"], .cept-thread-item').length;
+            console.log(`Scroll ${i + 1}: ${count} threads`);
+
+            if (count === prevCount) {
+                noChange++;
+                if (noChange >= NO_CHANGE_LIMIT) break;
+            } else {
+                noChange = 0;
+            }
+            prevCount = count;
+        }
+
+        loadingComplete = true;
+        console.log('=== LOAD COMPLETE ===');
+        sortAndFilterAll();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function sortAndFilterAll() {
+        console.log('=== SORT START ===');
+
+        const threads = Array.from(document.querySelectorAll('article.thread, [data-t="thread"], .cept-thread-item'));
+        if (!threads.length) { console.error('No threads found'); return; }
+
+        const container = threads[0].parentElement;
+
+        const processed = threads.map((thread, order) => {
+            const link =
+                thread.querySelector('a.cept-tt.thread-link.js-thread-title') ||
+                thread.querySelector('a.thread-link') ||
+                thread.querySelector('.thread-title a') ||
+                thread.querySelector('[data-t="threadLink"]');
+            const title = link ? link.textContent.trim() : '';
+            return { thread, order, priority: getThreadPriority(title), title };
+        });
+
+        const visible = processed.filter(t => t.priority !== -1);
+        const hidden = processed.filter(t => t.priority === -1);
+
+        visible.sort((a, b) => b.priority !== a.priority ? b.priority - a.priority : a.order - b.order);
+
+        container.innerHTML = '';
+        visible.forEach(v => container.appendChild(v.thread));
+        hidden.forEach(h => { h.thread.style.display = 'none'; container.appendChild(h.thread); });
+
+        console.log(`=== SORT COMPLETE: ${visible.length} visible / ${hidden.length} hidden ===`);
+    }
+
+    // ----------- UI FUNCTIONS -----------
+    function updatePriorityUI(listContainer) {
+        listContainer.innerHTML = '';
+        priorityKeywords.forEach((kw, i) => {
+            const row = document.createElement('div');
+            row.style.marginBottom = '4px';
+            row.style.display = 'flex';
+            row.style.alignItems = 'center';
+
+            const span = document.createElement('span');
+            span.textContent = kw;
+            span.style.flex = '1';
+            span.style.color = 'black';
+
+            const upBtn = document.createElement('button');
+            upBtn.textContent = '↑';
+            upBtn.style.marginRight = '2px';
+            upBtn.onclick = function () {
+                if (i === 0) return;
+                [priorityKeywords[i - 1], priorityKeywords[i]] = [priorityKeywords[i], priorityKeywords[i - 1]];
+                updatePriorityUI(listContainer);
+            };
+
+            const downBtn = document.createElement('button');
+            downBtn.textContent = '↓';
+            downBtn.style.marginRight = '2px';
+            downBtn.onclick = function () {
+                if (i === priorityKeywords.length - 1) return;
+                [priorityKeywords[i + 1], priorityKeywords[i]] = [priorityKeywords[i], priorityKeywords[i + 1]];
+                updatePriorityUI(listContainer);
+            };
+
+            const delBtn = document.createElement('button');
+            delBtn.textContent = '✖';
+            delBtn.onclick = function () {
+                priorityKeywords.splice(i, 1);
+                updatePriorityUI(listContainer);
+            };
+
+            row.appendChild(span);
+            row.appendChild(upBtn);
+            row.appendChild(downBtn);
+            row.appendChild(delBtn);
+            listContainer.appendChild(row);
+        });
+    }
+
+    function addButtonWithUI() {
+        const wrapper = document.createElement('div');
+        wrapper.style.position = 'fixed';
+        wrapper.style.bottom = '20px';
+        wrapper.style.right = '20px';
+        wrapper.style.background = '#fff';
+        wrapper.style.border = '1px solid #ccc';
+        wrapper.style.padding = '10px';
+        wrapper.style.borderRadius = '8px';
+        wrapper.style.zIndex = '10000';
+        wrapper.style.width = '220px';
+        wrapper.style.fontSize = '14px';
+        wrapper.style.color = 'black';
+        wrapper.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+
+        const title = document.createElement('div');
+        title.textContent = 'Priority Keywords';
+        title.style.fontWeight = 'bold';
+        title.style.marginBottom = '6px';
+        wrapper.appendChild(title);
+
+        const listContainer = document.createElement('div');
+        listContainer.style.marginBottom = '6px';
+        wrapper.appendChild(listContainer);
+
+        updatePriorityUI(listContainer);
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = 'New keyword';
+        input.style.width = '100%';
+        input.style.marginBottom = '6px';
+        wrapper.appendChild(input);
+
+        const addBtn = document.createElement('button');
+        addBtn.textContent = 'Add';
+        addBtn.style.width = '100%';
+        addBtn.style.marginBottom = '6px';
+        addBtn.onclick = function () {
+            const val = input.value.trim();
+            if (val && !priorityKeywords.includes(val)) {
+                priorityKeywords.push(val);
+                updatePriorityUI(listContainer);
+                input.value = '';
+            }
+        };
+        wrapper.appendChild(addBtn);
+
+        const runBtn = document.createElement('button');
+        runBtn.textContent = 'Load All & Sort';
+        runBtn.style.width = '100%';
+        runBtn.style.background = '#ff6600';
+        runBtn.style.color = '#fff';
+        runBtn.style.fontWeight = 'bold';
+        runBtn.style.border = 'none';
+        runBtn.style.padding = '6px';
+        runBtn.onclick = function () {
+            if (!isLoading) loadAllPages().then(() => sortAndFilterAll());
+            else sortAndFilterAll();
+        };
+        wrapper.appendChild(runBtn);
+
+        document.body.appendChild(wrapper);
+    }
+
+    setTimeout(addButtonWithUI, 2000);
+})();

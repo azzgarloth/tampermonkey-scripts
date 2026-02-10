@@ -1,0 +1,91 @@
+// ==UserScript==
+// @name         Hide PoE 2 Videos & Shorts Menu & Channels & Shorts Shelf
+// @namespace    http://tampermonkey.net/
+// @version      1.6
+// @description  Hide videos containing "value" from YouTube, hide Shorts menu, hide specific channels, and hide Shorts shelf
+// @author       You
+// @match        https://www.youtube.com/*
+// @grant        none
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    // Add channel names here to hide their videos
+    const blockedChannels = [
+        'channelNameToBlock'
+    ];
+
+    function hideVideos() {
+        const videos = document.querySelectorAll('ytd-rich-item-renderer, ytd-grid-video-renderer, ytd-video-renderer');
+
+        videos.forEach(video => {
+            const titleElement = video.querySelector('#video-title, #video-title-link, .yt-core-attributed-string');
+
+            if (titleElement) {
+                const title = titleElement.textContent.trim();
+                if (title.match(/value\s*2/i)) {
+                    video.style.display = 'none';
+                }
+            }
+        });
+    }
+
+    function hideChannelVideos() {
+        const videos = document.querySelectorAll('ytd-video-renderer, ytd-grid-video-renderer, ytd-rich-item-renderer');
+
+        videos.forEach(video => {
+            const channelLinks = video.querySelectorAll('a.yt-core-attributed-string__link, #channel-name a, #text.ytd-channel-name a, ytd-channel-name a');
+
+            channelLinks.forEach(link => {
+                // Get first text node only (before badge/icon elements)
+                const textNode = Array.from(link.childNodes).find(node => node.nodeType === Node.TEXT_NODE);
+                if (textNode) {
+                    const channelName = textNode.textContent.trim();
+                    if (blockedChannels.includes(channelName)) {
+                        video.style.display = 'none';
+                    }
+                }
+            });
+        });
+    }
+
+    function hideShortsMenu() {
+        const guideItems = document.querySelectorAll('ytd-guide-entry-renderer');
+
+        guideItems.forEach(item => {
+            const title = item.querySelector('.title');
+            if (title && title.textContent.trim() === 'Shorts') {
+                item.style.display = 'none';
+            }
+        });
+    }
+
+    function hideShortsShelf() {
+        const shelves = document.querySelectorAll('ytd-rich-shelf-renderer');
+
+        shelves.forEach(shelf => {
+            const titleElement = shelf.querySelector('#title');
+            if (titleElement && titleElement.textContent.trim() === 'Shorts') {
+                shelf.style.display = 'none';
+            }
+        });
+    }
+
+    function hideAll() {
+        hideVideos();
+        hideShortsMenu();
+        hideChannelVideos();
+        hideShortsShelf();
+    }
+
+    // Initial execution
+    hideAll();
+
+    // Watch for dynamic content loading
+    const observer = new MutationObserver(hideAll);
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+})();

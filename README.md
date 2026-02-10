@@ -76,7 +76,7 @@ A Tampermonkey userscript that hides:
 ### Installation
 
 1. Install [Tampermonkey](https://www.tampermonkey.net/).  
-2. Create a new userscript and paste the `Hide "keyword" Videos, Shorts Menu, Channels array, and Shorts Shelf` code.  
+2. Create a new userscript and paste the `Hide Videos, Shorts Menu, Channels array, and Shorts Shelf` code.  
 3. Save and visit [YouTube](https://www.youtube.com/).  
 
 ### Configuration
